@@ -4,6 +4,7 @@
   "description": "Contextual file and workflow memory app",
   "main": "main.js",
   "scripts": {
+    "dist": "vite build && electron-builder"
     "dev": "vite",
     "build": "vite build",
     "start": "electron ."
