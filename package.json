@@ -1,0 +1,22 @@
+{
+  "name": "pan-app",
+  "version": "0.1.0",
+  "description": "Contextual file and workflow memory app",
+  "main": "main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.0.0",
+    "electron": "^42.5.0",
+    "electron-builder": "^26.15.3",
+    "vite": "^8.1.0"
+  },
+  "dependencies": {
+    "electron-store": "^11.0.2",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
+}

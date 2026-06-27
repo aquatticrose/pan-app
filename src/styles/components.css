@@ -1,0 +1,520 @@
+/* =====================
+   SEARCH BAR
+   =====================
+   This is the top region — also acts as the drag handle
+   so the user can move the window by clicking and dragging here */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+
+  /* -webkit-app-region: drag turns this area into a
+     window drag handle — the user can drag the window
+     from here since we removed the titlebar */
+  -webkit-app-region: drag;
+}
+
+.search-icon {
+  font-size: 16px;
+  color: #999;
+  flex-shrink: 0;
+
+  /* no-drag on the icon so clicks on it don't
+     accidentally start a window drag */
+  -webkit-app-region: no-drag;
+}
+
+.search-bar input {
+  flex: 1;
+  font-size: 15px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #1a1a1a;
+
+  /* Critically important — without no-drag on the input,
+     the user can't click into it to type because Electron
+     intercepts the click for window dragging instead */
+  -webkit-app-region: no-drag;
+}
+
+.search-bar input::placeholder {
+  color: #c0c0c0;
+}
+
+.clear-btn {
+  background: none;
+  border: none;
+  color: #bbb;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  transition: background 0.1s, color 0.1s;
+  -webkit-app-region: no-drag;
+}
+
+.clear-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #666;
+}
+
+/* =====================
+   TABS
+   ===================== */
+.tabs {
+  display: flex;
+  padding: 0 16px;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+  -webkit-app-region: drag;
+}
+
+.tab {
+  font-size: 12px;
+  padding: 7px 12px;
+  background: none;
+  border: none;
+  border-bottom: 1.5px solid transparent;
+  color: #aaa;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  -webkit-app-region: no-drag;
+}
+
+.tab.active {
+  color: #1a1a1a;
+  border-bottom-color: #1a1a1a;
+  font-weight: 500;
+}
+
+.tab:hover:not(.active) {
+  color: #555;
+}
+
+/* =====================
+   MAIN CONTENT AREA
+   ===================== */
+.main-area {
+  flex: 1;
+  overflow-y: auto;
+
+  /* Custom scrollbar — thin and subtle, matching the minimal feel */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.15) transparent;
+}
+
+.main-area::-webkit-scrollbar {
+  width: 4px;
+}
+
+.main-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.main-area::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+}
+
+.section-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: #c0c0c0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 10px 16px 4px;
+}
+
+/* =====================
+   EMPTY STATE
+   ===================== */
+.empty-state {
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.empty-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+.empty-hint {
+  font-size: 12px;
+  color: #bbb;
+  line-height: 1.6;
+}
+
+/* =====================
+   RESULT ROWS
+   ===================== */
+.results-list {
+  padding-bottom: 8px;
+}
+
+.result-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.1s;
+  border-left: 2px solid transparent;
+}
+
+.result-row:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.result-row.selected {
+  background: rgba(0, 0, 0, 0.05);
+  border-left-color: #1a1a1a;
+}
+
+/* File icon — a small coloured pill showing the file type
+   Much cleaner than emojis which render inconsistently */
+.file-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+  letter-spacing: -0.02em;
+}
+
+/* Each file type gets its own colour — these match
+   the colours apps like Finder and iOS use for file types */
+.file-icon.pdf  { background: #FDECEA; color: #C0392B; }
+.file-icon.doc,
+.file-icon.docx { background: #E8F0FE; color: #1A73E8; }
+.file-icon.xls,
+.file-icon.xlsx,
+.file-icon.csv  { background: #E6F4EA; color: #188038; }
+.file-icon.jpg,
+.file-icon.jpeg,
+.file-icon.png,
+.file-icon.gif,
+.file-icon.webp { background: #FEF3E2; color: #E37400; }
+.file-icon.mp4,
+.file-icon.mov  { background: #F3E8FD; color: #7B1FA2; }
+.file-icon.mp3,
+.file-icon.wav  { background: #E8F5E9; color: #2E7D32; }
+.file-icon.js,
+.file-icon.jsx,
+.file-icon.ts,
+.file-icon.tsx,
+.file-icon.py,
+.file-icon.html,
+.file-icon.css  { background: #E8EAED; color: #3C4043; }
+.file-icon.zip,
+.file-icon.rar  { background: #FFF8E1; color: #F57F17; }
+.file-icon.default { background: #F1F3F4; color: #80868B; }
+
+.result-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.result-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-path {
+  font-size: 11px;
+  color: #bbb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.result-time {
+  font-size: 11px;
+  color: #bbb;
+  flex-shrink: 0;
+}
+
+/* =====================
+   SESSION CARDS
+   ===================== */
+.sessions-list {
+  padding-bottom: 8px;
+}
+
+.session-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 9px 16px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.session-card:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.session-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #F1F3F4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  color: #80868B;
+}
+
+.session-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.session-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+.session-files {
+  font-size: 11px;
+  color: #bbb;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-date {
+  font-size: 11px;
+  color: #bbb;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+/* =====================
+   PREVIEW PANE
+   ===================== */
+.preview-pane {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.preview-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preview-detail {
+  font-size: 11px;
+  color: #bbb;
+  margin-top: 2px;
+}
+
+.preview-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.preview-actions button {
+  font-size: 11px;
+  color: #555;
+  background: rgba(255, 255, 255, 0.8);
+  border: 0.5px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  padding: 5px 11px;
+  cursor: pointer;
+  transition: background 0.1s;
+  white-space: nowrap;
+}
+
+.preview-actions button:hover {
+  background: rgba(255, 255, 255, 1);
+}
+
+/* Top bar wrapping search + settings button */
+.top-bar {
+  display: flex;
+  align-items: center;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+}
+
+.top-bar .search-bar {
+  flex: 1;
+  border-bottom: none; /* border is now on .top-bar */
+}
+
+.settings-btn {
+  font-size: 15px;
+  background: none;
+  border: none;
+  color: #bbb;
+  padding: 0 14px;
+  cursor: pointer;
+  transition: color 0.15s;
+  -webkit-app-region: no-drag;
+  flex-shrink: 0;
+}
+
+.settings-btn:hover { color: #555; }
+
+/* Settings overlay — full window dim behind the panel */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+}
+
+/* Settings panel */
+.settings-panel {
+  background: rgba(252, 252, 253, 0.98);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 480px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  overflow: hidden;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 0.5px solid rgba(0,0,0,0.08);
+}
+
+.settings-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+.settings-close {
+  background: none;
+  border: none;
+  color: #bbb;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  transition: background 0.1s;
+}
+
+.settings-close:hover { background: rgba(0,0,0,0.06); }
+
+.settings-section {
+  padding: 14px 16px;
+}
+
+.settings-section-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.settings-section-hint {
+  font-size: 11px;
+  color: #bbb;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+/* Folder list */
+.folder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.folder-empty {
+  font-size: 12px;
+  color: #bbb;
+  padding: 8px 0;
+}
+
+.folder-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: rgba(0,0,0,0.03);
+  border-radius: 8px;
+  border: 0.5px solid rgba(0,0,0,0.06);
+}
+
+.folder-icon { font-size: 14px; flex-shrink: 0; }
+
+.folder-path {
+  flex: 1;
+  font-size: 12px;
+  color: #444;
+  font-family: -apple-system-font, 'SF Mono', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folder-remove {
+  background: none;
+  border: none;
+  color: #ccc;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: color 0.1s, background 0.1s;
+}
+
+.folder-remove:hover { color: #e05252; background: rgba(224,82,82,0.08); }
+
+/* Add folder button */
+.add-folder-btn {
+  font-size: 12px;
+  color: #555;
+  background: rgba(255,255,255,0.9);
+  border: 0.5px solid rgba(0,0,0,0.12);
+  border-radius: 7px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.1s;
+  width: 100%;
+  text-align: center;
+}
+
+.add-folder-btn:hover { background: rgba(255,255,255,1); }
+.add-folder-btn:disabled { opacity: 0.5; cursor: not-allowed; }
