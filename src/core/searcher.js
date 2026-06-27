@@ -1,60 +1,119 @@
 const { getIndex } = require('./indexer')
 
-// These are the words users might type to describe a time period
-// We map them to a number of milliseconds in the past
-const TIME_HINTS = {
-  'just now':    1000 * 60 * 30,         // 30 minutes
-  'today':       1000 * 60 * 60 * 24,    // 24 hours
-  'last night':  1000 * 60 * 60 * 24,    // treat same as today
-  'yesterday':   1000 * 60 * 60 * 48,    // 48 hours
-  'last week':   1000 * 60 * 60 * 24 * 7,// 7 days
-  'this week':   1000 * 60 * 60 * 24 * 7,
-  'last month':  1000 * 60 * 60 * 24 * 30
+// Smarter time hints — each phrase maps to a function that returns
+// a { from, to } object representing the exact time window.
+// Using functions (not fixed values) means the window is calculated
+// fresh every time a search runs, so "today" always means *today*,
+// not "24 hours from when the app started"
+function getTimeWindow(phrase) {
+  const now = Date.now()
+  const minute = 60 * 1000
+  const hour   = 60 * minute
+  const day    = 24 * hour
+
+  // Get the start of today (midnight)
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  const todayMs = todayStart.getTime()
+
+  // Get the start of yesterday
+  const yesterdayMs = todayMs - day
+
+  switch (phrase) {
+    case 'just now':
+      // Last 30 minutes
+      return { from: now - 30 * minute, to: now }
+
+    case 'today':
+      // Since midnight today
+      return { from: todayMs, to: now }
+
+    case 'last night':
+      // 6pm yesterday to 4am today — what people mean by "last night"
+      return { from: yesterdayMs + 18 * hour, to: todayMs + 4 * hour }
+
+    case 'yesterday':
+      // The whole of yesterday, midnight to midnight
+      return { from: yesterdayMs, to: todayMs }
+
+    case 'this week':
+    case 'last week':
+      // Last 7 days
+      return { from: now - 7 * day, to: now }
+
+    case 'last month':
+    case 'this month':
+      // Last 30 days
+      return { from: now - 30 * day, to: now }
+
+    default:
+      return null
+  }
 }
 
-// These are words users might type to describe a file type
-// We map them to actual file extensions
+// Words that appear in queries but carry no useful search meaning
+// Matching against these would give false score boosts
+const STOP_WORDS = new Set([
+  'from', 'the', 'a', 'an', 'last', 'night', 'week',
+  'that', 'my', 'in', 'on', 'at', 'to', 'of', 'for',
+  'this', 'ago', 'about', 'some', 'just', 'now',
+  'today', 'yesterday', 'month', 'year'
+])
+
+// File type hints — maps natural language words to extensions
 const TYPE_HINTS = {
-  'pdf':      ['pdf'],
-  'doc':      ['doc', 'docx'],
-  'document': ['doc', 'docx', 'pdf'],
-  'image':    ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'],
-  'photo':    ['jpg', 'jpeg', 'png', 'heic'],
-  'video':    ['mp4', 'mov', 'avi', 'mkv'],
-  'audio':    ['mp3', 'wav', 'aac', 'm4a'],
-  'spreadsheet': ['xlsx', 'xls', 'csv'],
-  'code':     ['js', 'jsx', 'ts', 'tsx', 'py', 'html', 'css'],
-  'zip':      ['zip', 'rar', '7z', 'tar', 'gz'],
+  'pdf':        ['pdf'],
+  'doc':        ['doc', 'docx'],
+  'word':       ['doc', 'docx'],
+  'document':   ['doc', 'docx', 'pdf', 'txt', 'md'],
+  'image':      ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'heic'],
+  'photo':      ['jpg', 'jpeg', 'png', 'heic'],
+  'picture':    ['jpg', 'jpeg', 'png', 'heic', 'gif'],
+  'screenshot': ['png', 'jpg', 'jpeg'],
+  'video':      ['mp4', 'mov', 'avi', 'mkv', 'm4v'],
+  'audio':      ['mp3', 'wav', 'aac', 'm4a', 'flac'],
+  'music':      ['mp3', 'wav', 'aac', 'm4a', 'flac'],
+  'spreadsheet':['xlsx', 'xls', 'csv'],
+  'excel':      ['xlsx', 'xls'],
+  'csv':        ['csv'],
+  'code':       ['js', 'jsx', 'ts', 'tsx', 'py', 'html', 'css', 'json'],
+  'script':     ['js', 'jsx', 'ts', 'tsx', 'py', 'sh'],
+  'zip':        ['zip', 'rar', '7z', 'tar', 'gz'],
+  'archive':    ['zip', 'rar', '7z', 'tar', 'gz'],
+  'note':       ['txt', 'md', 'rtf'],
+  'text':       ['txt', 'md', 'rtf'],
+  'markdown':   ['md'],
+  'presentation':['pptx', 'ppt', 'key'],
+  'slides':     ['pptx', 'ppt', 'key'],
 }
 
-// The main search function
-// query = whatever the user typed, e.g. "pdf from last night"
 function search(query) {
-  // If the user typed nothing, return nothing
   if (!query || query.trim() === '') return []
 
   const index = getIndex()
+  const q = query.toLowerCase().trim()
+  const words = q.split(/\s+/).filter(w => w.length > 1)
 
-  // Convert the query to lowercase so matching isn't case-sensitive
-  // "PDF" and "pdf" should behave the same
-  const q = query.toLowerCase()
+  // --- Detect time window ---
+  // Check for multi-word time phrases first (longest match wins)
+  // so "last night" matches before "last" or "night" individually
+  const TIME_PHRASES = [
+    'just now', 'last night', 'this week', 'last week',
+    'this month', 'last month', 'today', 'yesterday'
+  ]
 
-  // Split the query into individual words
-  // "pdf from last night" → ["pdf", "from", "last", "night"]
-  const words = q.split(' ').filter(w => w.length > 1)
+  let timeWindow = null
+  let matchedTimePhrase = null
 
-  // Figure out if the user hinted at a time period
-  // We check if the full query contains any of our known time phrases
-  let timeLimit = null
-  for (const [phrase, ms] of Object.entries(TIME_HINTS)) {
+  for (const phrase of TIME_PHRASES) {
     if (q.includes(phrase)) {
-      // timeLimit is a timestamp — any file older than this gets penalised
-      timeLimit = Date.now() - ms
+      timeWindow = getTimeWindow(phrase)
+      matchedTimePhrase = phrase
       break
     }
   }
 
-  // Figure out if the user hinted at a file type
+  // --- Detect file type filter ---
   let typeFilter = null
   for (const [hint, exts] of Object.entries(TYPE_HINTS)) {
     if (q.includes(hint)) {
@@ -63,57 +122,93 @@ function search(query) {
     }
   }
 
-  // Now score every file in the index
+  // --- Filter meaningful search words ---
+  // Remove stop words and time/type hint words from the search terms
+  // so they don't falsely boost filenames that contain them
+  const timeWords = matchedTimePhrase ? matchedTimePhrase.split(' ') : []
+  const typeWords = typeFilter
+    ? Object.keys(TYPE_HINTS).filter(h => q.includes(h))
+    : []
+
+  const searchWords = words.filter(w =>
+    !STOP_WORDS.has(w) &&
+    !timeWords.includes(w) &&
+    !typeWords.includes(w) &&
+    w.length > 1
+  )
+
+  // Score every file in the index
   const scored = index.map(file => {
     let score = 0
     const nameLower = file.name.toLowerCase()
 
-    // --- Name matching ---
-    // Check each word in the query against the filename
-    for (const word of words) {
-      // Skip common words that aren't useful for matching
-      if (['from', 'the', 'a', 'an', 'last', 'night', 'week', 'that', 'my', 'pdf', 'doc', 'image'].includes(word)) continue
-
-      if (nameLower.includes(word)) {
-        score += 10 // strong signal — the word appears in the filename
-
-        // Extra points if the filename *starts* with this word
-        // "notes.pdf" matches "notes" better than "lecture_notes.pdf" does
-        if (nameLower.startsWith(word)) score += 5
+    // --- Hard time filter ---
+    // If a time phrase was given, exclude files outside that window entirely.
+    // Set score to -1 and return early — no point scoring further.
+    if (timeWindow) {
+      if (file.modified < timeWindow.from || file.modified > timeWindow.to) {
+        return { ...file, score: -1 }
+      } else {
+        // Inside the time window — solid reward
+        score += 15
       }
     }
 
-    // --- File type matching ---
+    // --- Hard type filter ---
+    // Same principle — wrong type means excluded entirely
     if (typeFilter) {
       if (typeFilter.includes(file.ext)) {
-        score += 8 // file type matches what the user described
+        score += 8
       } else {
-        score -= 20 // wrong type — push it way down the results
-      } 
+        return { ...file, score: -1 }
+      }
     }
 
-   // --- Time matching ---
-// If the user mentioned a time phrase, treat it as a hard filter.
-// Files outside the time window are excluded entirely — score goes
-// to -1 so they get cut by the filter(f => f.score > 0) at the end.
-// Files inside the window get a boost for being relevant to the time described.
-if (timeLimit) {
-  if (file.modified >= timeLimit) {
-    score += 12 // inside the window — reward it
-  } else {
-    score = -1  // outside the window — exclude it completely
-    return { ...file, score }
-  }
-}
+    // --- Name matching ---
+    for (const word of searchWords) {
+      if (nameLower.includes(word)) {
+        score += 10 // word appears somewhere in the filename
+
+        // Extra points for starting with the word
+        if (nameLower.startsWith(word)) score += 4
+
+        // Extra points for exact word boundary match
+        // e.g. "note" matching "notes" vs "keynote" — prefer the former
+        const wordBoundary = new RegExp(`(^|[_\\-\\s\\.])${word}`, 'i')
+        if (wordBoundary.test(nameLower)) score += 3
+      }
+    }
+
+    // --- Multi-word proximity bonus ---
+    // If the user typed multiple search words and they all appear
+    // in the filename in order, that's a much stronger match.
+    // e.g. searching "design notes" and finding "design_notes.pdf"
+    // is better than finding "my_notes_about_design_thinking.pdf"
+    if (searchWords.length > 1) {
+      const combined = searchWords.join('.*') // regex: words appear in order
+      const proximityRegex = new RegExp(combined, 'i')
+      if (proximityRegex.test(nameLower)) {
+        score += 12 // strong bonus for in-order multi-word match
+      }
+    }
+
+    // If no search words matched at all and we had search terms,
+    // this file isn't relevant — exclude it
+    if (searchWords.length > 0 && score === 0) {
+      return { ...file, score: -1 }
+    }
+
+    // Recency bonus — even without a time phrase, slightly prefer
+    // more recently modified files as tiebreakers.
+    // We divide by a large number so recent files get a small nudge,
+    // not enough to override a strong name match
+    const daysSinceModified = (Date.now() - file.modified) / (1000 * 60 * 60 * 24)
+    if (daysSinceModified < 1)  score += 3  // modified today
+    if (daysSinceModified < 7)  score += 1  // modified this week
 
     return { ...file, score }
-    // { ...file } copies all the file's properties (name, path, etc.)
-    // then we add the score on top
   })
 
-  // Filter out files with a score of 0 or less — they're not relevant
-  // Then sort by score, highest first
-  // Then return only the top 20 results (no one needs to see 500 results)
   return scored
     .filter(f => f.score > 0)
     .sort((a, b) => b.score - a.score)
