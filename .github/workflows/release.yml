@@ -1,0 +1,75 @@
+# This workflow runs automatically when you push a tag starting with "v"
+# e.g. git tag v1.0.0 && git push origin v1.0.0
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  # --- Mac build ---
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      # Step 1: Check out your code on the GitHub machine
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Install Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      # Step 4: Build React with Vite, then package with electron-builder
+      - name: Build and package
+        run: npm run dist
+        env:
+          # GH_TOKEN lets electron-builder upload the built file
+          # to your GitHub Release automatically
+          # GitHub provides this token automatically — you don't
+          # need to create it yourself
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 5: Upload the .dmg file as a release asset
+      - name: Upload Mac release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist-electron/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # --- Windows build ---
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build and package
+        run: npm run dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 5: Upload the .exe file as a release asset
+      - name: Upload Windows release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist-electron/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
