@@ -9,7 +9,35 @@ permissions:
   contents: write
 
 jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Pan ${{ github.ref_name }}
+          body: |
+            ## Pan ${{ github.ref_name }}
+
+            ### Downloads
+            - **Mac (Apple Silicon)** → `Pan-*-arm64.dmg`
+            - **Mac (Intel)** → `Pan-*.dmg` (without arm64)
+            - **Windows** → `Pan-Setup-*.exe`
+
+            ### Install
+            **Mac:** Open the .dmg and drag Pan to Applications.
+            **Windows:** Run the .exe installer.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build-mac:
+    needs: create-release
     runs-on: macos-latest
     steps:
       - name: Checkout code
@@ -35,13 +63,13 @@ jobs:
       - name: Upload Mac files
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            dist/Pan-*.dmg
-            dist/Pan-*-arm64.dmg
+          tag_name: ${{ github.ref_name }}
+          files: dist/Pan-*.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-windows:
+    needs: create-release
     runs-on: windows-latest
     steps:
       - name: Checkout code
@@ -67,7 +95,7 @@ jobs:
       - name: Upload Windows files
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            dist/Pan-*.exe
+          tag_name: ${{ github.ref_name }}
+          files: dist/Pan-Setup-*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
