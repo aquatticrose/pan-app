@@ -11,6 +11,7 @@ It never reads the contents of your files.
 Press ⌘+Option+P (Mac) or Ctrl+Alt+P (Windows) from anywhere on your computer. Pan appears instantly, ready to search.
 
 New features are coming, the current release is a draft.
+
 :
 :
 :
