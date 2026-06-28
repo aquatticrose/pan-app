@@ -12,6 +12,8 @@ Press ⌘+Option+P (Mac) or Ctrl+Alt+P (Windows) from anywhere on your computer.
 
 New features are coming, the current release is a draft.
 
+
+
 Copyright (c) 2026 aquatticrose
 
 All Rights Reserved.
